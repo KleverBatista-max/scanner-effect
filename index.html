@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<script>document.write('<base href="'+(location.pathname.endsWith('/')?location.pathname:location.pathname+'/')+'">')</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scanner Effect</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png"><meta name="theme-color" content="#0b1f3a">
+<style>
+:root{--bg:#eef1f5;--card:#fff;--ink:#14202e;--muted:#5d6c7c;--line:#d6dde5;--navy:#0b1f3a;--cy:#17a9d6;--inp:#f8fafc}
+@media (prefers-color-scheme:dark){:root{--bg:#0d1520;--card:#15202d;--ink:#e6edf4;--muted:#93a5b7;--line:#2a3a4c;--cy:#3cc3ee;--inp:#0f1923;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:90px}
+header{background:var(--navy);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 16px}
+header h1{margin:0;font-size:18px;font-weight:600;flex:1}
+header button{background:transparent;color:#cfe3f3;border:1px solid #3b5473;border-radius:6px;padding:6px 10px;font:inherit;font-size:14px;cursor:pointer}
+main{max-width:860px;margin:0 auto;padding:14px;display:grid;gap:14px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+h2{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+label{display:grid;gap:3px;font-size:13px;color:var(--muted)}
+select{font:16px inherit;font-family:inherit;color:var(--ink);background:var(--inp);border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chk{display:flex;gap:10px;align-items:center;font-size:16px;color:var(--ink);padding:6px 0}
+.chk input{width:22px;height:22px;accent-color:var(--navy)}
+.btn{font:600 16px system-ui;padding:13px 16px;border-radius:9px;border:1px solid var(--line);background:var(--inp);color:var(--ink);cursor:pointer;text-align:center}
+.btn.p{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn:disabled{opacity:.45;cursor:default}
+.fila{display:flex;gap:10px;flex-wrap:wrap}.fila>*{flex:1;min-width:140px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--cy);outline-offset:2px}
+#vista{background:#6f6f6f;border-radius:10px;padding:10px;display:grid;place-items:center;min-height:200px;position:relative}
+#vista canvas{max-width:100%;height:auto;box-shadow:0 2px 14px rgba(0,0,0,.4)}
+#vista .vacio{color:#d6dde5;text-align:center;padding:40px 12px}
+#espera{position:absolute;inset:0;background:rgba(0,0,0,.35);color:#fff;display:none;place-items:center;border-radius:10px;font-weight:600}
+.pager{display:flex;justify-content:center;align-items:center;gap:14px;color:var(--muted);font-size:14px}
+.pager button{padding:6px 14px}
+small{color:var(--muted)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;justify-content:center}
+.bar .btn{flex:1;max-width:260px}
+#msg{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:#14202e;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;display:none;max-width:90vw;z-index:9}
+</style></head><body>
+<header><img src="icon.svg" alt="" width="34" height="34" style="border-radius:8px"><h1>Scanner Effect</h1></header>
+<main>
+<section>
+  <h2>1 · Tu imagen</h2>
+  <div class="fila">
+    <button class="btn p" id="bElegir">Elegir imagen o PDF</button>
+    <button class="btn" id="bFoto">Tomar foto</button>
+  </div>
+  <input id="fArchivo" type="file" accept="image/*,application/pdf" multiple hidden>
+  <input id="fFoto" type="file" accept="image/*" capture="environment" hidden>
+  <small id="info">Funciona con fotos, capturas y PDF: recetas, recibos, cartas, contratos, lo que sea. Todo pasa en tu aparato: nada se sube a ningún servidor.</small>
+</section>
+<section>
+  <h2>2 · Cómo se ve</h2>
+  <div class="g2">
+    <label>Color<select id="modo"><option value="bn">Blanco y negro (como fotocopia)</option><option value="gris">Escala de grises</option><option value="color">Color</option></select></label>
+    <label>Hoja<select id="papel"><option value="letter">Carta</option><option value="a4">A4</option><option value="auto">Ajustada a la imagen</option></select></label>
+  </div>
+  <div class="g2">
+    <label>Margen blanco de la hoja<select id="margen"><option value="0">Sin margen</option><option value="1" selected>Pequeño</option><option value="2">Grande</option></select></label>
+    <label>Calidad del archivo<select id="calidad"><option value="0.6">Liviano</option><option value="0.78" selected>Normal</option><option value="0.92">Alta</option></select></label>
+  </div>
+  <label class="chk"><input type="checkbox" id="bordes" checked> Bordes finos alrededor del documento</label>
+  <label class="chk"><input type="checkbox" id="incl" checked> Un poco chueco, como escaneado a mano</label>
+  <small>El fondo gris del escáner con su sombra y sus motas siempre sale, para que se vea como un escáner viejo.</small>
+</section>
+<section>
+  <h2>Vista previa</h2>
+  <div id="vista"><div class="vacio" id="vacio">Elige una imagen o un PDF para empezar</div><canvas id="cv" hidden></canvas><div id="espera">Procesando…</div></div>
+  <div class="pager" id="pager" hidden><button class="btn" id="pPrev">‹</button><span id="pTxt"></span><button class="btn" id="pNext">›</button></div>
+  <div class="fila"><button class="btn" id="bOtra" disabled>Otra variación</button></div>
+</section>
+</main>
+<div class="bar"><button class="btn" id="bImg" disabled>Descargar imagen</button><button class="btn p" id="bPdf" disabled>Descargar PDF</button></div>
+<div id="msg"></div>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const B=location.pathname.endsWith('/')?location.pathname:location.pathname+'/';
+function aviso(t,ms=3200){const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(aviso.t);aviso.t=setTimeout(()=>m.style.display='none',ms)}
+
+/* ---------- efecto de escáner (el mismo de Reclamos, hecho genérico) ---------- */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function mkCanvas(w,h){const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c;}
+const clamp=v=>v<0?0:v>255?255:v;
+/* Estima la luz del papel. Una zona oscura grande (un logo negro) NO cuenta como fondo: se busca el papel más claro de alrededor
+   y nunca baja de 60 % del blanco típico de la hoja. Así lo negro queda negro por dentro (antes salía blanco en el centro). */
+function fondoSuave(c){
+  const w=c.width,h=c.height,sw=Math.max(8,Math.round(w/24)),sh=Math.max(8,Math.round(h/24));
+  const sm=mkCanvas(sw,sh),sx=sm.getContext('2d');sx.drawImage(c,0,0,sw,sh);
+  const d=sx.getImageData(0,0,sw,sh).data,n=sw*sh,L=new Float32Array(n);
+  for(let i=0;i<n;i++)L[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];
+  const ord=Float32Array.from(L).sort(),p95=ord[Math.floor(n*0.95)],piso=Math.max(60,0.6*p95);
+  const R=Math.max(2,Math.round(Math.min(sw,sh)/10)),T=new Float32Array(n),O=new Float32Array(n);
+  for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){let m=0;for(let k=-R;k<=R;k++){const xx=Math.min(sw-1,Math.max(0,x+k));if(L[y*sw+xx]>m)m=L[y*sw+xx]}T[y*sw+x]=m}
+  for(let x=0;x<sw;x++)for(let y=0;y<sh;y++){let m=0;for(let k=-R;k<=R;k++){const yy=Math.min(sh-1,Math.max(0,y+k));if(T[yy*sw+x]>m)m=T[yy*sw+x]}O[y*sw+x]=m}
+  const im=sx.createImageData(sw,sh);
+  for(let i=0;i<n;i++){const v=Math.max(O[i],piso);im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=v;im.data[i*4+3]=255}
+  sx.putImageData(im,0,0);
+  const bg=mkCanvas(w,h),bx=bg.getContext('2d');bx.imageSmoothingEnabled=true;bx.imageSmoothingQuality='high';bx.drawImage(sm,0,0,w,h);
+  return bx.getImageData(0,0,w,h).data;
+}
+function filtro(c,modo){
+  const w=c.width,h=c.height,x=c.getContext('2d'),img=x.getImageData(0,0,w,h),d=img.data;
+  if(modo==='color'){for(let i=0;i<d.length;i+=4){for(let k=0;k<3;k++)d[i+k]=clamp((d[i+k]-128)*1.07+128+3)}x.putImageData(img,0,0);return}
+  const b=fondoSuave(c);
+  for(let i=0;i<d.length;i+=4){
+    const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2],bgv=Math.max(60,b[i]),v=Math.min(1.25,1.06*g/bgv);
+    const o=modo==='bn'?255/(1+Math.exp(-(v-0.78)*18)):clamp(255*(v-0.18)/0.8);
+    d[i]=d[i+1]=d[i+2]=o;d[i+3]=255;
+  }
+  x.putImageData(img,0,0);
+}
+function ondas(rand){const a=[0,1,2].map(()=>({f:0.004+rand()*0.03,p:rand()*6.28,k:0.3+rand()*0.7}));return t=>a.reduce((s,o)=>s+o.k*Math.sin(t*o.f+o.p),0)/1.6}
+function bordeFino(x,x0,y0,w,h,rand){
+  const lados=[[x0,y0,1,0,w],[x0+w,y0,0,1,h],[x0+w,y0+h,-1,0,w],[x0,y0+h,0,-1,h]];
+  for(const [sx,sy,dx,dy,len] of lados){
+    const wob=ondas(rand),tono=ondas(rand);
+    for(let t=0;t<len;t+=3){
+      const e=Math.min(len,t+3.4),o1=0.7*wob(t),o2=0.7*wob(e),a=Math.max(0.12,0.38+0.2*tono(t));
+      x.strokeStyle='rgba(75,75,75,'+a.toFixed(2)+')';x.lineWidth=1.15;
+      x.beginPath();x.moveTo(sx+dx*t-dy*o1,sy+dy*t+dx*o1);x.lineTo(sx+dx*e-dy*o2,sy+dy*e+dx*o2);x.stroke();
+      if(dx<0||dy>0){x.strokeStyle='rgba(60,60,60,'+(a*0.35).toFixed(2)+')';x.lineWidth=1.8;
+        x.beginPath();x.moveTo(sx+dx*t-dy*(o1+1.1),sy+dy*t+dx*(o1+1.1));x.lineTo(sx+dx*e-dy*(o2+1.1),sy+dy*e+dx*(o2+1.1));x.stroke()}
+    }
+  }
+}
+/* Fondo gris del escáner (con manchas y ruido) + la hoja encima, un poco más chica, con sombra. Siempre se aplica. */
+function efectoEscaner(paper,rand,W,H,incl){
+  const bed=mkCanvas(W,H),x=bed.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#8c8c8c');g.addColorStop(0.45,'#b0b0b0');g.addColorStop(1,'#8f8f8f');x.fillStyle=g;x.fillRect(0,0,W,H);
+  const u=Math.max(W,H)/1754;
+  for(let k=0;k<7;k++){const r=(250+rand()*450)*u,cx=rand()*W,cy=rand()*H,rg=x.createRadialGradient(cx,cy,0,cx,cy,r),c=rand()<0.5?'255,255,255':'0,0,0';rg.addColorStop(0,'rgba('+c+',.10)');rg.addColorStop(1,'rgba('+c+',0)');x.fillStyle=rg;x.fillRect(0,0,W,H)}
+  const sx=0.93+rand()*0.014,sy=0.922+rand()*0.014,pw=W*sx,ph=H*sy,px=W*(0.004+rand()*0.008),py=H*(0.004+rand()*0.008);
+  const ang=incl?(rand()<0.5?-1:1)*(0.15+rand()*0.3)*Math.PI/180:0;
+  x.save();x.shadowColor='rgba(0,0,0,.55)';x.shadowBlur=14*u;x.shadowOffsetX=4*u;x.shadowOffsetY=4*u;
+  x.translate(px+pw/2,py+ph/2);x.rotate(ang);x.drawImage(paper,-pw/2,-ph/2,pw,ph);x.restore();
+  const sm=mkCanvas(W*0.8,H*0.8);sm.getContext('2d').drawImage(bed,0,0,sm.width,sm.height);x.drawImage(sm,0,0,W,H);
+  const img=x.getImageData(0,0,W,H),d=img.data;
+  for(let i=0;i<d.length;i+=4){const n=(rand()-0.5)*18;d[i]=clamp(d[i]*0.98+6+n);d[i+1]=clamp(d[i+1]*0.98+6+n);d[i+2]=clamp(d[i+2]*0.98+6+n)}
+  x.putImageData(img,0,0);
+  x.fillStyle='rgba(20,20,20,.5)';
+  for(let k=0;k<70;k++){const r=(0.6+rand()*1.1)*u;x.beginPath();x.arc(px+rand()*pw,py+rand()*ph,r,0,6.3);x.fill()}
+  return bed;
+}
+const DIMS={letter:[1275,1650],a4:[1240,1754]};   // a 150 dpi
+function componer(pg,seed,o){
+  const rand=rng(seed),land=pg.width>pg.height;
+  let W,H;
+  if(o.papel==='auto'){const k=1754/Math.max(pg.width,pg.height);W=Math.round(pg.width*k/0.93);H=Math.round(pg.height*k/0.93);const m=Math.max(W,H);if(m>2400){const f=2400/m;W=Math.round(W*f);H=Math.round(H*f)}}
+  else{[W,H]=DIMS[o.papel];if(land)[W,H]=[H,W]}
+  const paper=mkCanvas(W,H),x=paper.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
+  const M=Math.round([0,0.03,0.08][o.margen]*Math.min(W,H)),s=Math.min((W-2*M)/pg.width,(H-2*M)/pg.height),dw=Math.round(pg.width*s),dh=Math.round(pg.height*s);
+  const cc=mkCanvas(dw,dh);cc.getContext('2d').drawImage(pg,0,0,dw,dh);filtro(cc,o.modo);
+  const ang=o.incl?(rand()<0.5?-1:1)*(0.25+rand()*0.45)*Math.PI/180:0,j=Math.min(W,H)*0.006;
+  x.save();x.translate(W/2+(rand()-0.5)*j,H/2+(rand()-0.5)*j);x.rotate(ang);x.drawImage(cc,-dw/2,-dh/2);
+  if(o.bordes)bordeFino(x,-dw/2,-dh/2,dw,dh,rand);
+  x.restore();
+  return efectoEscaner(paper,rand,W,H,o.incl);
+}
+
+/* ---------- cargar imágenes y PDF ---------- */
+let paginas=[],actual=0,semilla=1234,ocupado=false;
+function cargaScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('No cargó '+src));document.head.appendChild(s)})}
+async function leer(f){
+  const out=[],nombre=f.name.toLowerCase();
+  if(f.type==='application/pdf'||nombre.endsWith('.pdf')){
+    if(!window.pdfjsLib)await cargaScript('vendor/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
+    for(let i=1;i<=Math.min(pdf.numPages,30);i++){
+      const p=await pdf.getPage(i),v1=p.getViewport({scale:1}),v=p.getViewport({scale:Math.min(2.5,2200/Math.max(v1.width,v1.height))});
+      const c=mkCanvas(v.width,v.height),x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+      await p.render({canvasContext:x,viewport:v}).promise;out.push(c)}
+  }else{
+    let bmp;try{bmp=await createImageBitmap(f,{imageOrientation:'from-image'})}catch(e){bmp=await new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=no;im.src=URL.createObjectURL(f)})}
+    const w=bmp.width||bmp.naturalWidth,h=bmp.height||bmp.naturalHeight,k=Math.min(1,2400/Math.max(w,h));
+    const c=mkCanvas(w*k,h*k),x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(bmp,0,0,c.width,c.height);out.push(c)}
+  return out;
+}
+async function cargar(files){
+  if(!files.length)return;$('espera').style.display='grid';
+  try{const nuevas=[];for(const f of files)nuevas.push(...await leer(f));
+    if(!nuevas.length)throw new Error('vacío');paginas=nuevas.slice(0,40);actual=0;semilla=1000+Math.floor(Math.random()*9000);
+    ['bImg','bPdf','bOtra'].forEach(i=>$(i).disabled=false);await dibuja()}
+  catch(e){aviso('No pude leer ese archivo');$('espera').style.display='none'}
+}
+const opciones=()=>({modo:$('modo').value,papel:$('papel').value,margen:+$('margen').value,bordes:$('bordes').checked,incl:$('incl').checked});
+async function dibuja(){
+  if(!paginas.length)return;$('espera').style.display='grid';await new Promise(r=>setTimeout(r,30));
+  const out=componer(paginas[actual],semilla+actual*77,opciones()),cv=$('cv');
+  cv.width=out.width;cv.height=out.height;cv.getContext('2d').drawImage(out,0,0);cv.hidden=false;$('vacio').hidden=true;
+  $('pager').hidden=paginas.length<2;$('pTxt').textContent='Página '+(actual+1)+' de '+paginas.length;$('espera').style.display='none';
+}
+let deb;['modo','papel','margen','bordes','incl'].forEach(k=>$(k).onchange=()=>{clearTimeout(deb);deb=setTimeout(dibuja,150)});
+$('bOtra').onclick=()=>{semilla+=1+Math.floor(Math.random()*500);dibuja()};
+$('pPrev').onclick=()=>{actual=(actual+paginas.length-1)%paginas.length;dibuja()};
+$('pNext').onclick=()=>{actual=(actual+1)%paginas.length;dibuja()};
+$('bElegir').onclick=()=>$('fArchivo').click();$('bFoto').onclick=()=>$('fFoto').click();
+for(const id of ['fArchivo','fFoto'])$(id).onchange=e=>{const f=[...e.target.files];e.target.value='';cargar(f)};
+const jpeg=c=>new Promise(r=>c.toBlob(r,'image/jpeg',+$('calidad').value));
+$('bImg').onclick=async()=>{if(ocupado)return;const b=await jpeg($('cv'));const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='escaneado.jpg';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),20000)};
+$('bPdf').onclick=async()=>{
+  if(ocupado)return;ocupado=true;$('espera').style.display='grid';$('espera').textContent='Creando el PDF…';await new Promise(r=>setTimeout(r,30));
+  try{const {jsPDF}=window.jspdf;let doc=null;const o=opciones();
+    for(let i=0;i<paginas.length;i++){
+      const c=i===actual?$('cv'):componer(paginas[i],semilla+i*77,o),blob=await jpeg(c),url=await new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(blob)});
+      const pw=c.width*72/150,ph=c.height*72/150,or=pw>ph?'l':'p';
+      if(!doc)doc=new jsPDF({unit:'pt',format:[pw,ph],orientation:or,compress:true});else doc.addPage([pw,ph],or);
+      doc.addImage(url,'JPEG',0,0,pw,ph)}
+    doc.save('escaneado.pdf');aviso('PDF listo')}
+  catch(e){aviso('No se pudo crear el PDF')}
+  ocupado=false;$('espera').style.display='none';$('espera').textContent='Procesando…';
+};
+</script></body></html>

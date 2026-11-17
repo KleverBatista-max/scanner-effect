@@ -9,7 +9,8 @@ Se hace **en tu navegador**: nada se sube a ningún servidor y no hay cuentas ni
 
 ## Qué hace
 - Toma una **foto**, una imagen o un **PDF** (varias páginas y varios archivos a la vez).
-- **Color:** blanco y negro (como fotocopia), escala de grises o color. Un logo o una zona negra grande se queda negra, sin hueco blanco.
+- **Filtros:** blanco y negro (como fotocopia), blanco y negro suave (con grises), escala de grises, color, **color mágico** (papel blanco y colores vivos), **sepia** (papel antiguo) y **fax** (negro duro). Un logo o una zona negra grande se queda negra, sin hueco blanco.
+- **Ajustes:** brillo, contraste y cantidad de grano y polvo del escáner.
 - **Hoja:** Carta, A4, o ajustada a la imagen (vertical u horizontal sola).
 - **Fondo de escáner:** gris con manchas, sombra de la hoja y motas de polvo; **siempre** sale, para que parezca un escáner viejo.
 - **Bordes finos** alrededor del documento y **leve inclinación**: opcionales.
@@ -34,7 +35,7 @@ También sirve en cualquier hosting estático (GitHub Pages, Netlify, tu propio 
 - Resolución de salida: `DIMS` (150 dpi).
 
 ## English
-Give any photo, screenshot or PDF an **old-scanner look**, entirely in your browser (nothing is uploaded). Black & white / grayscale / color, Letter / A4 / fit-to-image, optional thin borders and slight skew; the gray scanner bed with shadow and dust always shows. Exports PDF or JPG. Run `python3 -m http.server` and open it.
+Give any photo, screenshot or PDF an **old-scanner look**, entirely in your browser (nothing is uploaded). Filters: black & white, soft B&W, grayscale, color, magic color, sepia, fax; brightness / contrast / grain sliders; Letter / A4 / fit-to-image, optional thin borders and slight skew; the gray scanner bed with shadow and dust always shows. Exports PDF or JPG. Run `python3 -m http.server` and open it.
 
 ## Licencia
 MIT. Incluye [jsPDF](https://github.com/parallax/jsPDF) (MIT) y [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0): ver `THIRD_PARTY.md`.

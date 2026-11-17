@@ -32,6 +32,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .pager{display:flex;justify-content:center;align-items:center;gap:14px;color:var(--muted);font-size:14px}
 .pager button{padding:6px 14px}
 small{color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--navy);padding:0}label b{color:var(--ink);font-weight:600;margin-left:6px}
 .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;justify-content:center}
 .bar .btn{flex:1;max-width:260px}
 #msg{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;background:#14202e;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;display:none;max-width:90vw;z-index:9}
@@ -51,13 +52,19 @@ small{color:var(--muted)}
 <section>
   <h2>2 · Cómo se ve</h2>
   <div class="g2">
-    <label>Color<select id="modo"><option value="bn">Blanco y negro (como fotocopia)</option><option value="gris">Escala de grises</option><option value="color">Color</option></select></label>
+    <label>Color<select id="modo"><option value="bn">Blanco y negro (como fotocopia)</option><option value="gris">Escala de grises</option><option value="color">Color</option><option value="magic">Color mágico (papel blanco, colores vivos)</option><option value="suave">Blanco y negro suave (con grises)</option><option value="sepia">Sepia (papel antiguo)</option><option value="fax">Fax (negro duro)</option></select></label>
     <label>Hoja<select id="papel"><option value="letter">Carta</option><option value="a4">A4</option><option value="auto">Ajustada a la imagen</option></select></label>
   </div>
   <div class="g2">
     <label>Margen blanco de la hoja<select id="margen"><option value="0">Sin margen</option><option value="1" selected>Pequeño</option><option value="2">Grande</option></select></label>
     <label>Calidad del archivo<select id="calidad"><option value="0.6">Liviano</option><option value="0.78" selected>Normal</option><option value="0.92">Alta</option></select></label>
   </div>
+  <div class="g2">
+    <label>Grano y polvo del escáner<select id="grano"><option value="0.35">Poco</option><option value="1" selected>Normal</option><option value="2">Mucho</option></select></label>
+    <label>&nbsp;<button class="btn" id="reset" type="button">Restablecer ajustes</button></label>
+  </div>
+  <label>Brillo <b id="vBr">0</b><input type="range" id="brillo" min="-40" max="40" value="0"></label>
+  <label>Contraste <b id="vCt">0</b><input type="range" id="contraste" min="-40" max="40" value="0"></label>
   <label class="chk"><input type="checkbox" id="bordes" checked> Bordes finos alrededor del documento</label>
   <label class="chk"><input type="checkbox" id="incl" checked> Un poco chueco, como escaneado a mano</label>
   <small>El fondo gris del escáner con su sombra y sus motas siempre sale, para que se vea como un escáner viejo.</small>
@@ -89,7 +96,7 @@ function fondoSuave(c){
   const d=sx.getImageData(0,0,sw,sh).data,n=sw*sh,L=new Float32Array(n);
   for(let i=0;i<n;i++)L[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];
   const ord=Float32Array.from(L).sort(),p95=ord[Math.floor(n*0.95)],piso=Math.max(60,0.6*p95);
-  const R=Math.max(2,Math.round(Math.min(sw,sh)/10)),T=new Float32Array(n),O=new Float32Array(n);
+  const R=Math.max(2,Math.round(Math.min(sw,sh)/4)),T=new Float32Array(n),O=new Float32Array(n);
   for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){let m=0;for(let k=-R;k<=R;k++){const xx=Math.min(sw-1,Math.max(0,x+k));if(L[y*sw+xx]>m)m=L[y*sw+xx]}T[y*sw+x]=m}
   for(let x=0;x<sw;x++)for(let y=0;y<sh;y++){let m=0;for(let k=-R;k<=R;k++){const yy=Math.min(sh-1,Math.max(0,y+k));if(T[yy*sw+x]>m)m=T[yy*sw+x]}O[y*sw+x]=m}
   const im=sx.createImageData(sw,sh);
@@ -98,15 +105,29 @@ function fondoSuave(c){
   const bg=mkCanvas(w,h),bx=bg.getContext('2d');bx.imageSmoothingEnabled=true;bx.imageSmoothingQuality='high';bx.drawImage(sm,0,0,w,h);
   return bx.getImageData(0,0,w,h).data;
 }
-function filtro(c,modo){
+const lerp=(a,b,t)=>a+(b-a)*t;
+function filtro(c,modo,br,ct){
   const w=c.width,h=c.height,x=c.getContext('2d'),img=x.getImageData(0,0,w,h),d=img.data;
-  if(modo==='color'){for(let i=0;i<d.length;i+=4){for(let k=0;k<3;k++)d[i+k]=clamp((d[i+k]-128)*1.07+128+3)}x.putImageData(img,0,0);return}
-  const b=fondoSuave(c);
-  for(let i=0;i<d.length;i+=4){
-    const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2],bgv=Math.max(60,b[i]),v=Math.min(1.25,1.06*g/bgv);
-    const o=modo==='bn'?255/(1+Math.exp(-(v-0.78)*18)):clamp(255*(v-0.18)/0.8);
-    d[i]=d[i+1]=d[i+2]=o;d[i+3]=255;
+  if(modo==='color'){for(let i=0;i<d.length;i+=4){for(let k=0;k<3;k++)d[i+k]=clamp((d[i+k]-128)*1.07+128+3)}}
+  else{
+    const b=fondoSuave(c);
+    for(let i=0;i<d.length;i+=4){
+      const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2],bgv=Math.max(60,b[i]),v=Math.min(1.25,1.06*g/bgv);
+      if(modo==='magic'){   // quita sombras, blanquea el papel y deja los colores vivos
+        const f=Math.min(2.2,250/bgv),r=d[i]*f,gg=d[i+1]*f,bb=d[i+2]*f,l=0.299*r+0.587*gg+0.114*bb;
+        const o=[r,gg,bb].map(u=>{u=clamp(l+(u-l)*1.3);const t=u/255,s2=t*t*(3-2*t);return clamp(255*(0.55*t+0.45*s2))});
+        d[i]=o[0];d[i+1]=o[1];d[i+2]=o[2];continue}
+      let o;
+      if(modo==='bn')o=255/(1+Math.exp(-(v-0.78)*18));
+      else if(modo==='suave')o=255/(1+Math.exp(-(v-0.76)*9));
+      else if(modo==='fax')o=255/(1+Math.exp(-(v-0.72)*70));
+      else o=clamp(255*(v-0.18)/0.8);   // gris
+      if(modo==='sepia'){const t=255/(1+Math.exp(-(v-0.76)*11))/255;d[i]=lerp(62,246,t);d[i+1]=lerp(40,236,t);d[i+2]=lerp(24,206,t)}
+      else{d[i]=d[i+1]=d[i+2]=o}
+      d[i+3]=255;
+    }
   }
+  if(br||ct){const k=1+ct/100,add=br*2.55;for(let i=0;i<d.length;i+=4){d[i]=clamp((d[i]-128)*k+128+add);d[i+1]=clamp((d[i+1]-128)*k+128+add);d[i+2]=clamp((d[i+2]-128)*k+128+add)}}
   x.putImageData(img,0,0);
 }
 function ondas(rand){const a=[0,1,2].map(()=>({f:0.004+rand()*0.03,p:rand()*6.28,k:0.3+rand()*0.7}));return t=>a.reduce((s,o)=>s+o.k*Math.sin(t*o.f+o.p),0)/1.6}
@@ -124,7 +145,7 @@ function bordeFino(x,x0,y0,w,h,rand){
   }
 }
 /* Fondo gris del escáner (con manchas y ruido) + la hoja encima, un poco más chica, con sombra. Siempre se aplica. */
-function efectoEscaner(paper,rand,W,H,incl){
+function efectoEscaner(paper,rand,W,H,incl,grano){
   const bed=mkCanvas(W,H),x=bed.getContext('2d');
   const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#8c8c8c');g.addColorStop(0.45,'#b0b0b0');g.addColorStop(1,'#8f8f8f');x.fillStyle=g;x.fillRect(0,0,W,H);
   const u=Math.max(W,H)/1754;
@@ -135,10 +156,10 @@ function efectoEscaner(paper,rand,W,H,incl){
   x.translate(px+pw/2,py+ph/2);x.rotate(ang);x.drawImage(paper,-pw/2,-ph/2,pw,ph);x.restore();
   const sm=mkCanvas(W*0.8,H*0.8);sm.getContext('2d').drawImage(bed,0,0,sm.width,sm.height);x.drawImage(sm,0,0,W,H);
   const img=x.getImageData(0,0,W,H),d=img.data;
-  for(let i=0;i<d.length;i+=4){const n=(rand()-0.5)*18;d[i]=clamp(d[i]*0.98+6+n);d[i+1]=clamp(d[i+1]*0.98+6+n);d[i+2]=clamp(d[i+2]*0.98+6+n)}
+  for(let i=0;i<d.length;i+=4){const n=(rand()-0.5)*18*grano;d[i]=clamp(d[i]*0.98+6+n);d[i+1]=clamp(d[i+1]*0.98+6+n);d[i+2]=clamp(d[i+2]*0.98+6+n)}
   x.putImageData(img,0,0);
   x.fillStyle='rgba(20,20,20,.5)';
-  for(let k=0;k<70;k++){const r=(0.6+rand()*1.1)*u;x.beginPath();x.arc(px+rand()*pw,py+rand()*ph,r,0,6.3);x.fill()}
+  for(let k=0,N=Math.round(70*grano);k<N;k++){const r=(0.6+rand()*1.1)*u;x.beginPath();x.arc(px+rand()*pw,py+rand()*ph,r,0,6.3);x.fill()}
   return bed;
 }
 const DIMS={letter:[1275,1650],a4:[1240,1754]};   // a 150 dpi
@@ -149,12 +170,12 @@ function componer(pg,seed,o){
   else{[W,H]=DIMS[o.papel];if(land)[W,H]=[H,W]}
   const paper=mkCanvas(W,H),x=paper.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
   const M=Math.round([0,0.03,0.08][o.margen]*Math.min(W,H)),s=Math.min((W-2*M)/pg.width,(H-2*M)/pg.height),dw=Math.round(pg.width*s),dh=Math.round(pg.height*s);
-  const cc=mkCanvas(dw,dh);cc.getContext('2d').drawImage(pg,0,0,dw,dh);filtro(cc,o.modo);
+  const cc=mkCanvas(dw,dh);cc.getContext('2d').drawImage(pg,0,0,dw,dh);filtro(cc,o.modo,o.brillo,o.contraste);
   const ang=o.incl?(rand()<0.5?-1:1)*(0.25+rand()*0.45)*Math.PI/180:0,j=Math.min(W,H)*0.006;
   x.save();x.translate(W/2+(rand()-0.5)*j,H/2+(rand()-0.5)*j);x.rotate(ang);x.drawImage(cc,-dw/2,-dh/2);
   if(o.bordes)bordeFino(x,-dw/2,-dh/2,dw,dh,rand);
   x.restore();
-  return efectoEscaner(paper,rand,W,H,o.incl);
+  return efectoEscaner(paper,rand,W,H,o.incl,o.grano);
 }
 
 /* ---------- cargar imágenes y PDF ---------- */
@@ -183,14 +204,16 @@ async function cargar(files){
     ['bImg','bPdf','bOtra'].forEach(i=>$(i).disabled=false);await dibuja()}
   catch(e){aviso('No pude leer ese archivo');$('espera').style.display='none'}
 }
-const opciones=()=>({modo:$('modo').value,papel:$('papel').value,margen:+$('margen').value,bordes:$('bordes').checked,incl:$('incl').checked});
+const opciones=()=>({modo:$('modo').value,papel:$('papel').value,margen:+$('margen').value,bordes:$('bordes').checked,incl:$('incl').checked,grano:+$('grano').value,brillo:+$('brillo').value,contraste:+$('contraste').value});
 async function dibuja(){
   if(!paginas.length)return;$('espera').style.display='grid';await new Promise(r=>setTimeout(r,30));
   const out=componer(paginas[actual],semilla+actual*77,opciones()),cv=$('cv');
   cv.width=out.width;cv.height=out.height;cv.getContext('2d').drawImage(out,0,0);cv.hidden=false;$('vacio').hidden=true;
   $('pager').hidden=paginas.length<2;$('pTxt').textContent='Página '+(actual+1)+' de '+paginas.length;$('espera').style.display='none';
 }
-let deb;['modo','papel','margen','bordes','incl'].forEach(k=>$(k).onchange=()=>{clearTimeout(deb);deb=setTimeout(dibuja,150)});
+let deb;['modo','papel','margen','bordes','incl','grano'].forEach(k=>$(k).onchange=()=>{clearTimeout(deb);deb=setTimeout(dibuja,150)});
+['brillo','contraste'].forEach(k=>$(k).oninput=()=>{$(k==='brillo'?'vBr':'vCt').textContent=$(k).value;clearTimeout(deb);deb=setTimeout(dibuja,250)});
+$('reset').onclick=()=>{$('brillo').value=0;$('contraste').value=0;$('vBr').textContent='0';$('vCt').textContent='0';$('grano').value='1';dibuja()};
 $('bOtra').onclick=()=>{semilla+=1+Math.floor(Math.random()*500);dibuja()};
 $('pPrev').onclick=()=>{actual=(actual+paginas.length-1)%paginas.length;dibuja()};
 $('pNext').onclick=()=>{actual=(actual+1)%paginas.length;dibuja()};

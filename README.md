@@ -38,4 +38,4 @@ También sirve en cualquier hosting estático (GitHub Pages, Netlify, tu propio 
 Give any photo, screenshot or PDF an **old-scanner look**, entirely in your browser (nothing is uploaded). Filters: black & white, soft B&W, grayscale, color, magic color, sepia, fax; brightness / contrast / grain sliders; Letter / A4 / fit-to-image, optional thin borders and slight skew; the gray scanner bed with shadow and dust always shows. Exports PDF or JPG. Run `python3 -m http.server` and open it.
 
 ## Licencia
-MIT. Incluye [jsPDF](https://github.com/parallax/jsPDF) (MIT) y [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0): ver `THIRD_PARTY.md`.
+Todos los derechos reservados (ver `LICENSE`): el código se puede ver, pero no copiar ni usar sin permiso. Incluye [jsPDF](https://github.com/parallax/jsPDF) (MIT) y [PDF.js](https://github.com/mozilla/pdf.js) (Apache-2.0): ver `THIRD_PARTY.md`.
